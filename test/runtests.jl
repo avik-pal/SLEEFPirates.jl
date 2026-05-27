@@ -12,7 +12,17 @@ include("testsetup.jl")
 function runtests()
   @testset "SLEEFPirates" begin
     # @test isempty(detect_unbound_args(SLEEFPirates))
-    Aqua.test_all(SLEEFPirates)
+    Aqua.test_all(
+      SLEEFPirates;
+      piracies = (
+        treat_as_own = [
+          VectorizationBase.AbstractSIMD,
+          VectorizationBase.Vec,
+          VectorizationBase.MM,
+          VectorizationBase.VecUnroll,
+        ],
+      ),
+    )
     # include("exceptional.jl")
     include("accuracy.jl")
   end
