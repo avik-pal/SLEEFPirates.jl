@@ -364,6 +364,12 @@ end
 # @inline sigmoid_fast(x) = Base.FastMath.inv_fast(Base.FastMath.add_fast(one(x), exp(Base.FastMath.sub_fast(x))))
 @inline sigmoid_fast(x) =
   inv(Base.FastMath.add_fast(one(x), Base.exp(Base.FastMath.sub_fast(x))))
+# Match the `tanh(x::IntegerType)` etc. pattern: convert integer inputs to
+# the matching float type upstream of the kernel so the rounding chain is
+# the same as for direct float inputs (otherwise `Base.exp(::Integer)`
+# promotes to `Float64`, the kernel runs in `Float64`, and the final
+# narrowing to `Float32` gives a 1-ULP delta).
+@inline sigmoid_fast(x::IntegerType) = sigmoid_fast(float(x))
 # `inv_fast` was slower than `inv`
 # @inline sigmoid_fast(x) = Base.FastMath.inv_fast(Base.FastMath.add_fast(one(x), exp(Base.FastMath.sub_fast(x))))
 
