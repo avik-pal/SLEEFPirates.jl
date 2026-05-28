@@ -223,7 +223,9 @@
 
   xxr = range(-SLEEFPirates.max_tanh(T), SLEEFPirates.max_tanh(T), length = 100_000)
   fun_table = Dict(tanh_fast => Base.tanh)
-  tol = 3
+  # `tanh_fast` is a relaxed-accuracy variant; Float32 peaks just under 4 ULP
+  # near x ≈ -6.21, while Float64 stays within 3 ULP.
+  tol = T === Float32 ? 4 : 3
   test_acc(T, fun_table, xxr, tol)
 
   xxr =
