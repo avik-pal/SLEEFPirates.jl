@@ -141,9 +141,21 @@
   test_acc(T, fun_table, xx, tol)
 
 
+  # `-10.0 .^ -(0:0.02:300)` parses as `(-10.0) .^ (-(0:0.02:300))` —
+  # broadcasting `(-10.0)^y` with non-integer `y`. Pre-1.13 returned `NaN`
+  # (with `countulp(NaN, NaN) == 0` it contributed no information), but
+  # Julia 1.13 made `Base.:^(::Real, ::Real)` throw `DomainError` on a
+  # negative base with non-integer exponent. Negate the result instead so
+  # the intent (a fan of small negative inputs near 0 to exercise
+  # `log1p`'s near-zero kernel) is preserved.
   xx = map(
     T,
-    vcat(0.0001:0.0001:10, 0.0001:0.1:10000, 10.0 .^ -(0:0.02:300), -10.0 .^ -(0:0.02:300)),
+    vcat(
+      0.0001:0.0001:10,
+      0.0001:0.1:10000,
+      10.0 .^ -(0:0.02:300),
+      -(10.0 .^ -(0:0.02:300)),
+    ),
   )
   fun_table = Dict(SLEEFPirates.log1p => Base.log1p)
   tol = 1
