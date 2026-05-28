@@ -32,8 +32,18 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-        arch:
-          - x64
+        include:
+          # Native arch per OS. `macOS-latest` is Apple silicon since the
+          # 2024 GitHub Actions image bump; forcing `arch: x64` there
+          # would run Julia under Rosetta emulation, which produces
+          # measurably different FP rounding (vexp2 / tanh_fast Float32
+          # accuracy tests exceed their ULP tolerance under Rosetta).
+          - os: ubuntu-latest
+            arch: x64
+          - os: macOS-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: x64
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
