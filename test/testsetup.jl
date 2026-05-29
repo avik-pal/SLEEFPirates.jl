@@ -229,12 +229,6 @@ function test_vector(
   tu2 = T.(fun.(vbig.(tovector.(vu))...))
   test1 = maximum(countulp.(t1, t2)) ≤ tol
   test2 = maximum(countulp.(tu1, tu2)) ≤ tol
-  if !test1 && string(strip_module_name(xfun)) == "pow"
-    @info "[DEBUG pow test1]" W xf xl vxes1 t1 t2 countulp_each = countulp.(t1, t2) max_ulp = maximum(countulp.(t1, t2))
-  end
-  if !test2 && string(strip_module_name(xfun)) == "pow"
-    @info "[DEBUG pow test2]" W vu tu1 tu2 countulp_each = countulp.(tu1, tu2) max_ulp = maximum(countulp.(tu1, tu2))
-  end
   if test1 | (!broken)
     @test maximum(countulp.(t1, t2)) ≤ tol
   else
