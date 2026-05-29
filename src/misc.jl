@@ -67,7 +67,15 @@ end
     ::Val{B},
     ::False,
   ) where {B}
-    N_float = muladd(
+    # `Base.muladd` here lowers to `llvm.fmuladd` which is "may fuse or not"
+    # — and we have CI evidence (M1 vs M2/M3 silicon) that LLVM makes
+    # different choices on different Apple silicon generations, producing
+    # divergent rounding chains in `pow` at extreme magnitudes (~149 ULP
+    # on M1 vs ≤ 5 ULP on M2/M3 for the same inputs). Use `fma` to force
+    # single-rounded FMA: deterministic across hardware, same speed on
+    # any target with native FMA, and at most a few ULP cost on
+    # legacy targets without it.
+    N_float = fma(
       x,
       VectorizationBase.LogBo256INV(Val{B}(), Float64),
       VectorizationBase.MAGIC_ROUND_CONST(Float64),
@@ -91,8 +99,8 @@ end
     jU = reinterpret(Float64, Base.Math.JU_CONST | (j & Base.Math.JU_MASK))
     jL = reinterpret(Float64, Base.Math.JL_CONST | (j >> 8))
     k = N >>> 0x00000008
-    very_small = muladd(jU, VectorizationBase.expm1b_kernel(Val{B}(), r), jL)
-    small_part = muladd(jU, xlo, very_small) + jU
+    very_small = fma(jU, VectorizationBase.expm1b_kernel(Val{B}(), r), jL)
+    small_part = fma(jU, xlo, very_small) + jU
     # small_part = reinterpret(UInt64, vfmadd(js, expm1b_kernel(Val{B}(), r), js))
     # return reinterpret(Float64, small_part), r, k, N_float, js
     twopk = (k % UInt64) << 0x0000000000000034
@@ -105,7 +113,9 @@ end
     ::Val{B},
     ::True,
   ) where {B}
-    N_float = muladd(
+    # See note in the `::False` branch above: `muladd` is replaced by `fma`
+    # for deterministic rounding across hardware.
+    N_float = fma(
       x,
       VectorizationBase.LogBo256INV(Val{B}(), Float64),
       VectorizationBase.MAGIC_ROUND_CONST(Float64),
@@ -122,8 +132,8 @@ end
     # @show N & 0x000000ff j jU jL
     # k = N >>> 0x00000008
     # small_part = reinterpret(UInt64, vfmadd(js, expm1b_kernel(Val{B}(), r), js))
-    very_small = muladd(jU, VectorizationBase.expm1b_kernel(Val{B}(), r), jL)
-    small_part = muladd(jU, xlo, very_small) + jU
+    very_small = fma(jU, VectorizationBase.expm1b_kernel(Val{B}(), r), jL)
+    small_part = fma(jU, xlo, very_small) + jU
     # small_part = vfmadd(js, expm1b_kernel(Val{B}(), r), js)
     # return reinterpret(Float64, small_part), r, k, N_float, js
     res = VectorizationBase.vscalef(small_part, 0.00390625 * N_float)
